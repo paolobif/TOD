@@ -1,10 +1,16 @@
 from itertools import count
+from sys import exc_info
 from typing import List
+from unittest import skip
+from xmlrpc.client import boolean
 import cv2
 import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from sqlalchemy import false
+from tqdm import tqdm
+import time
 
 from utils import *
 
@@ -75,13 +81,20 @@ class WormViewer(CSV_Reader):
 
     nms = 0.3  # NMS threshold.
     count = 20  # How many frames used to locate fixed bbs.
-    scan = 1500  # Numer of frames in reverse to examine.
+    scan = 2000  # Numer of frames in reverse to examine.
 
-    def __init__(self, csv: str, vid: str, first: int=2400):
+    def __init__(self, csv: str, vid: str, first: int=2400, thresh: int=42):
         super().__init__(csv, vid)
         # Get tracked bbs of interest.
         self.tracked, _ = self.get_worms_from_end(first, self.count, self.nms)
         self.first = first
+        self.thresh = thresh
+
+        worm_ids = np.arange(0, len(self.tracked))
+        worm_state: dict[int, int] = {}
+        for i in worm_ids:
+            worm_state[i] = False
+        self.worm_state = worm_state
 
     def fetch_worms(self, worm_ids: list, frame_id: int):
         ret, frame = self.get_frame(frame_id)
@@ -108,7 +121,7 @@ class WormViewer(CSV_Reader):
 
         return new_worms
 
-    def compute_score(self, count=15, gap=5):
+    def compute_score(self, skip=10, count=5, gap=5):
         """Goes in reverse analyzing the worm locations to determine
         time of death.
 
@@ -127,18 +140,18 @@ class WormViewer(CSV_Reader):
             difs[i] = []
 
         # Loop through every frame in reverse.
-        for i in range(start, stop, -1):
+        for i in tqdm(range(start, stop, -skip)):
             current_worms = self.fetch_worms(worm_ids, i)
             current_worms = self.transform_all_worms(current_worms)
 
             spread = count + gap
             # Sets frame range for getting worm averages.
-            high = min(start, i + spread)  # Upper bounds.
+            high = min(start, i + spread * gap)  # Upper bounds.
             low = min(start, i + gap)  # Lower bounds.
 
             # Lopp through frames of interest.
             worms_to_inspect = []
-            for n in range(low, high):
+            for n in range(low, high, gap):
                 # wti = worm to inspect
                 wti = self.fetch_worms(worm_ids, n)
                 wti = self.transform_all_worms(wti)
@@ -146,19 +159,54 @@ class WormViewer(CSV_Reader):
 
             worms_to_inspect = np.array(worms_to_inspect, dtype=object)
 
+            # Ignore beginning where there are no worms to compare.
+            if worms_to_inspect.shape == (0,):
+                print("skipping empty")
+                continue
+
             for worm_id in worm_ids:
-                # iw = inspected worms
-                totals = []
                 older_worms = worms_to_inspect[:, worm_id]
+                # older_worms = self.transform_all_worms(older_worms)
+                self.older = worms_to_inspect
                 current_worm = current_worms[worm_id]
                 xshape, yshape = current_worm.shape
 
+                totals = []
                 for worm in older_worms:
                     difference = self.calculate_difference(worm, current_worm)
                     totals.append(difference.sum(axis=None))
-            # print(worms_to_inspect.shape)
 
+                pixel_count = xshape * yshape
+                avg = np.average(totals)
+                avg = avg / pixel_count  # Normalize difference by pixel count.
 
+                difs[worm_id].append(avg)
+
+                if not self.worm_state[worm_id] and avg > self.thresh:
+                    self.worm_state[worm_id] = i
+            # print(f"{i - self.first} / {self.scan}")
+
+        return difs
+
+    def save_scored_data(self, exp_id):
+        rows = []
+        for i, bb in enumerate(self.tracked):
+            x1, y1, w, h = bb
+            x2 = x1 + w
+            y2 = y1 + h
+            death = self.worm_state[i]
+            row = [death, x1, y1, x2, y2, exp_id]
+            rows.append(row)
+            # row = {"frame": death,
+            #        "x1": x1,
+            #        "y1": y1,
+            #        "x2": x2,
+            #        "y2": y2,
+            #        "expID": exp_id}
+            # print(i)
+            # df.append(row, ignore_index=True)
+        df = pd.DataFrame(rows, columns = ["frame", "x1", "y1", "x2", "y2", "expID"])
+        df.to_csv(f"{exp_id}_auto.csv", index=None)
 
     def create_worm_video(self, worm_id: int, duration: int):
         """Goes from first frame in reverse for 'duration' number of frames.
@@ -182,9 +230,9 @@ class WormViewer(CSV_Reader):
 
     @staticmethod
     def image_transformation(img):
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        cv2.normalize(gray, gray, 0, 255, cv2.NORM_MINMAX)
-        new_img = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,22)
+        frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        frame = cv2.normalize(frame, frame, 0, 255, cv2.NORM_MINMAX)
+        new_img = cv2.adaptiveThreshold(frame, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,22)
         return new_img
 
     @staticmethod
