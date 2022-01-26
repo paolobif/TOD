@@ -32,6 +32,7 @@ def save_video(path: str, vid_path: str, save_path: str):
     writer = cv2.VideoWriter(save_path, fourcc, 10, (width, height), True)
 
     df = read_df(path)
+    df[df["frame"] == 'False'] = 0
     df = df.astype(int)
 
     for _ in tqdm(range(total_frames)):
@@ -53,9 +54,16 @@ def save_video(path: str, vid_path: str, save_path: str):
 
 
 if __name__ == "__main__":
-    SCORED = "./data/1046_sorted.csv"
-    VIDEO = "./data/1046.avi"
-    SAVE = "./1046_annotated.avi"
+    SCORED = "./exp/results/"
+    VIDEO = "./exp/vids/"
+    SAVE = "./exp/results/"
 
     # df = read_df(SCORED)
-    save_video(SCORED, VIDEO, SAVE)
+
+    for i in range(1049, 1056):
+        scored = os.path.join(SCORED, f"{i}_auto.csv")
+        video = os.path.join(VIDEO, f"{i}.avi")
+        save = os.path.join(SAVE, f"{i}.avi")
+
+        save_video(scored, video, save)
+

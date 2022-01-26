@@ -1,5 +1,5 @@
 from itertools import count
-from sys import exc_info
+from sys import exc_info, path
 from typing import List
 from unittest import skip
 from xmlrpc.client import boolean
@@ -83,7 +83,7 @@ class WormViewer(CSV_Reader):
     count = 20  # How many frames used to locate fixed bbs.
     scan = 2000  # Numer of frames in reverse to examine.
 
-    def __init__(self, csv: str, vid: str, first: int=2400, thresh: int=42):
+    def __init__(self, csv: str, vid: str, first: int=2400, thresh: int=35):
         super().__init__(csv, vid)
         # Get tracked bbs of interest.
         self.tracked, _ = self.get_worms_from_end(first, self.count, self.nms)
@@ -188,7 +188,7 @@ class WormViewer(CSV_Reader):
 
         return difs
 
-    def save_scored_data(self, exp_id):
+    def save_scored_data(self, exp_id, path="./"):
         rows = []
         for i, bb in enumerate(self.tracked):
             x1, y1, w, h = bb
@@ -197,16 +197,10 @@ class WormViewer(CSV_Reader):
             death = self.worm_state[i]
             row = [death, x1, y1, x2, y2, exp_id]
             rows.append(row)
-            # row = {"frame": death,
-            #        "x1": x1,
-            #        "y1": y1,
-            #        "x2": x2,
-            #        "y2": y2,
-            #        "expID": exp_id}
-            # print(i)
-            # df.append(row, ignore_index=True)
+
         df = pd.DataFrame(rows, columns = ["frame", "x1", "y1", "x2", "y2", "expID"])
-        df.to_csv(f"{exp_id}_auto.csv", index=None)
+        save_name = os.path.join(path, f"{exp_id}_auto.csv")
+        df.to_csv(save_name, index=None)
 
     def create_worm_video(self, worm_id: int, duration: int):
         """Goes from first frame in reverse for 'duration' number of frames.
@@ -243,14 +237,77 @@ class WormViewer(CSV_Reader):
         return diff
 
 
+def match_csv_video(csvs, videos):
+    csvs = [os.path.splitext(csv)[0] for csv in csvs]
+    videos = [os.path.splitext(video)[0] for video in videos]
+
+    matches = []
+    for csv in csvs:
+        if csv in videos:
+            matches.append(csv)
+        else:
+            pass
+
+    return matches
+
+
+def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first: int = 2400):
+    """Takes directory of csvs with yolo outputs and then directory
+    with videos. Using the video and bounding boxes, creates and saves
+    time of death csv for each experiment.
+
+    Args:
+        csv_dir (str): folder with only csvs
+        video_dir (str): folder with only videos
+        save_dir (str): folder where to save videos
+        first (int): frame from where to start
+    """
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    csvs = os.listdir(csv_dir)
+    videos = os.listdir(video_dir)
+
+    exp_ids = match_csv_video(csvs, videos)
+
+    for exp_id  in exp_ids:
+        print(f"Processing {exp_id}")
+        csv_path = os.path.join(csv_dir, f"{exp_id}.csv")
+        vid_path = os.path.join(video_dir, f"{exp_id}.avi")
+
+        viewer = WormViewer(csv_path, vid_path, first=first, thresh=35)
+        # Thresh is the score in frame difference to call death.
+        scores = viewer.compute_score()
+        viewer.save_scored_data(exp_id, path=save_dir)
+
+        print(f"Done processing {exp_id}")
+
+
 if __name__ == "__main__":
-    csv_path = "./data/1046.csv"
-    vid_path = "./data/1046.avi"
+    CSVS = "./exp/csvs"
+    VIDS = "./exp/vids"
+    SAVE = "./exp/results"
 
-    processer = CSV_Reader(csv_path, vid_path)
-    frame, bbs = processer.get_worms_from_frame(206)
+    # CSVS is path to directory with all the YOLO output files
+    # VIDS is the path to a directory with the matching raw videos
+    # SAVVE is the directory where the video outputs are saved.
 
-    # print(bbs)
-    a = processer.get_worms_from_end(2400, 20)
-    b = non_max_suppression_post(a, 0.3)
-    print(a.shape, b.shape)
+
+    # Make sure the names for the csvs match the names for the videos.
+
+    batch_process(CSVS, VIDS, SAVE)
+
+
+    # IGNORE  ------------------- |
+    #                             V
+
+    # csv_path = "./data/1046.csv"
+    # vid_path = "./data/1046.avi"
+
+    # processer = CSV_Reader(csv_path, vid_path)
+    # frame, bbs = processer.get_worms_from_frame(206)
+
+    # # print(bbs)
+    # a = processer.get_worms_from_end(2400, 20)
+    # b = non_max_suppression_post(a, 0.3)
+    # print(a.shape, b.shape)
