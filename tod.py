@@ -96,7 +96,7 @@ class WormViewer(CSV_Reader):
             worm_state[i] = False
         self.worm_state = worm_state
 
-    def fetch_worms(self, worm_ids: list, frame_id: int):
+    def fetch_worms(self, worm_ids: list, frame_id: int, pad: int = 0):
         ret, frame = self.get_frame(frame_id)
         if not ret:
             print(f"Frame {frame_id} not found.")
@@ -108,6 +108,7 @@ class WormViewer(CSV_Reader):
                 pass
 
             x, y, w, h = self.tracked[worm].astype(int)
+            x, y, w, h = x - pad, y - pad, w + pad, h + pad
             worm_img = frame[y:y+h, x:x+w]
             worm_imgs.append(worm_img)
 
@@ -202,15 +203,17 @@ class WormViewer(CSV_Reader):
         save_name = os.path.join(path, f"{exp_id}_auto.csv")
         df.to_csv(save_name, index=None)
 
-    def create_worm_video(self, worm_id: int, duration: int):
+    def create_worm_video(self, worm_id: int, duration: int, pad: int = 3):
         """Goes from first frame in reverse for 'duration' number of frames.
         creates a video for location chosen by the worm_id
 
         Args:
             worm_id (int): worm id to track in video
             duration (int): how many frames to cover in the video
+            pad (int): padding on the image around the bounding box
         """
         x, y, w, h = self.tracked[worm_id].astype(int)
+        # x, y, w, h = x - pad, y - pad, w + pad, h + pad  # Apply pad to image.
         save_name = f"./results/{worm_id}.avi"
         fourcc = cv2.VideoWriter_fourcc(*"MJPG")
         writer = cv2.VideoWriter(save_name, fourcc, 3, (w, h), True)
