@@ -151,7 +151,7 @@ class WormViewer(CSV_Reader):
 
         return new_worms
 
-    def compute_score(self, skip=10, count=5, gap=50):
+    def compute_score(self, skip=20, count=5, gap=50):
         """Goes in reverse analyzing the worm locations to determine
         time of death.
 
@@ -177,14 +177,14 @@ class WormViewer(CSV_Reader):
             current_worms = self.fetch_worms(worm_ids, i)
             current_worms = self.transform_all_worms(current_worms)
 
-            spread = count + gap
+            #spread = count + gap
             # Sets frame range for getting worm averages.
-            high = min(start, i + spread * gap)  # Upper bounds.
+            high = min(start, i + gap + skip * count)  # Upper bounds.
             low = min(start, i + gap)  # Lower bounds.
 
             # Lopp through frames of interest.
             worms_to_inspect = []
-            for n in range(low, high, gap):
+            for n in range(low, high, skip):
                 # wti = worm to inspect
                 wti = self.fetch_worms(worm_ids, n)
                 wti = self.transform_all_worms(wti)
