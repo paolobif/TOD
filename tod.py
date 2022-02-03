@@ -152,7 +152,7 @@ class WormViewer(CSV_Reader):
 
         return new_worms
 
-    def compute_score(self, skip=10, count=5, gap=5):
+    def compute_score(self, skip=10, count=5, gap=10):
         """Goes in reverse analyzing the worm locations to determine
         time of death.
 
@@ -214,8 +214,10 @@ class WormViewer(CSV_Reader):
                 difs[worm_id].append(avg)
 
                 if not self.worm_state[worm_id] and avg > self.thresh:
-                    self.worm_state[worm_id] = i
-            # print(f"{i - self.first} / {self.scan}")
+                    self.worm_state[worm_id] = i - gap
+                    # included - gap to account for the fact that when the worm
+                    # has moved it is already alive, so go back to last time it
+                    # was known to be dead.
 
         return difs
 
