@@ -1,4 +1,3 @@
-from itertools import count
 import cv2
 import pandas as pd
 import os
@@ -14,7 +13,7 @@ class CSV_Reader():
     frame_interval = 100  # Frame intervals to check for stagnant worms
     step = 1  # Frame step within each interval
     prevalence = 0.3  # Fraction of unchanged bbs needed to be considered "stagnant"
-    padding = 50  # How many frames to pad by to be safe
+    padding = 100  # How many frames to pad by to be safe
 
     def __init__(self, csv, vid):
         """ Reads the csv and video and provides useful functions for determining
@@ -110,14 +109,14 @@ class WormViewer(CSV_Reader):
 
     def __init__(self, csv: str, vid: str, thresh: int = 35, first=False):
         super().__init__(csv, vid)
-        # Get tracked bbs of interest.
-        self.tracked, _ = self.get_worms_from_end(first, self.count, self.nms)
-
         # Make sure doesn't exceed video frame capcacity.
         if self.exp_end + self.count > self.frame_count:
             self.exp_end = self.frame_count - self.count
 
         self.first = first if first else self.exp_end
+        # Get tracked bbs of interest.
+        self.tracked, _ = self.get_worms_from_end(self.first, self.count, self.nms)
+
         self.thresh = thresh
 
         worm_ids = np.arange(0, len(self.tracked))
@@ -152,13 +151,16 @@ class WormViewer(CSV_Reader):
 
         return new_worms
 
-    def compute_score(self, skip=10, count=5, gap=10):
+    def compute_score(self, skip=10, count=5, gap=50):
         """Goes in reverse analyzing the worm locations to determine
         time of death.
 
         Args:
-            count (int, optional): How many frames to get average from. Defaults to 15.
-            gap (int, optional): How many frames to skip before getting frame averages. Defaults to 5.
+            skip (int, optional): How many frames to skip.
+            count (int, optional): How many frames to get average from.
+                                   Defaults to 15.
+            gap (int, optional): How many frames to jump before starting to
+                                 skip for frame averages. Defaults to 5.
         """
         stop = self.first - self.scan  # where to stop checking in reverse.
         start = self.first  # where to start checking in reverse.
@@ -170,7 +172,7 @@ class WormViewer(CSV_Reader):
         for i in worm_ids:
             difs[i] = []
 
-        # Loop through every frame in reverse.
+        # Loop through every {skip} frames in reverse.
         for i in tqdm(range(start, stop, -skip)):
             current_worms = self.fetch_worms(worm_ids, i)
             current_worms = self.transform_all_worms(current_worms)
@@ -214,7 +216,7 @@ class WormViewer(CSV_Reader):
                 difs[worm_id].append(avg)
 
                 if not self.worm_state[worm_id] and avg > self.thresh:
-                    self.worm_state[worm_id] = i - gap
+                    self.worm_state[worm_id] = i + skip
                     # included - gap to account for the fact that when the worm
                     # has moved it is already alive, so go back to last time it
                     # was known to be dead.
@@ -231,7 +233,7 @@ class WormViewer(CSV_Reader):
             row = [death, x1, y1, x2, y2, exp_id]
             rows.append(row)
 
-        df = pd.DataFrame(rows, columns = ["frame", "x1", "y1", "x2", "y2", "expID"])
+        df = pd.DataFrame(rows, columns=["frame", "x1", "y1", "x2", "y2", "expID"])
         save_name = os.path.join(path, f"{exp_id}_auto.csv")
         df.to_csv(save_name, index=None)
 
