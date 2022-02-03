@@ -114,8 +114,8 @@ class WormViewer(CSV_Reader):
         self.tracked, _ = self.get_worms_from_end(first, self.count, self.nms)
 
         # Make sure doesn't exceed video frame capcacity.
-        if self.exp_end + count > self.frame_count:
-            self.exp_end = self.frame_count - count
+        if self.exp_end + self.count > self.frame_count:
+            self.exp_end = self.frame_count - self.count
 
         self.first = first if first else self.exp_end
         self.thresh = thresh
