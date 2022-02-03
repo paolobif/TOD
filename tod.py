@@ -1,14 +1,10 @@
 from itertools import count
-from sys import exc_info, path
-from typing import List
+from tkinter.tix import Tree
 from unittest import skip
-from xmlrpc.client import boolean
 import cv2
 import pandas as pd
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-from sqlalchemy import false
 from tqdm import tqdm
 import time
 
@@ -17,6 +13,10 @@ from utils import *
 
 # Loads csv
 class CSV_Reader():
+    frame_interval = 100  # Frame intervals to check for stagnant worms
+    step = 1  # Frame step within each interval
+    prevalence = 0.3  # Fraction of unchanged bbs needed to be considered "stagnant"
+    padding = 50  # How many frames to pad by to be safe
 
     def __init__(self, csv, vid):
         """ Reads the csv and video and provides useful functions for determining
@@ -31,6 +31,8 @@ class CSV_Reader():
         self.df = pd.read_csv(csv,
                               usecols=[0, 1, 2, 3, 4, 5],
                               names=["frame", "x", "y", "w", "h", "class"])
+
+        self.exp_end = self.determine_exp_end() + self.padding
 
     def get_frame(self, frame_id):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_id - 1)
@@ -73,6 +75,31 @@ class CSV_Reader():
         self.tracked = tracked
         return tracked, all_bbs
 
+    def determine_exp_end(self, nms=0.6):
+        # Get threshold for count needed to be considered "stagnant"
+        interval = self.frame_interval
+        thresh = int((interval / self.step) * self.prevalence)
+        # Step is 1 for now due to df.between() further down.
+        print("Determining Experiment End")
+
+        stagnant = []
+        # Loop through the frame intervals
+        for i in tqdm(range(0, self.frame_count, interval)):
+            bbs = self.df[self.df["frame"].between(i, i + interval)]
+            bbs = bbs.to_numpy()
+            bbs = bbs[:, 1:5]
+            final_bbs, counts = non_max_suppression_post(bbs, nms, counts=True)
+            counts = np.array(counts)
+            # Determine what worms are stagnant.
+            stagnant_worms = counts[counts > thresh]
+            stagnant.append(len(stagnant_worms))
+
+        end_idx = np.argmax(stagnant)
+        exp_end = (end_idx + 1) * interval
+
+        print(f"Experiment Done @ Frame {exp_end}")
+        return exp_end
+
 
 class WormViewer(CSV_Reader):
     """Uses the fixed location of worms and
@@ -83,7 +110,7 @@ class WormViewer(CSV_Reader):
     count = 20  # How many frames used to locate fixed bbs.
     scan = 2000  # Numer of frames in reverse to examine.
 
-    def __init__(self, csv: str, vid: str, first: int=2400, thresh: int=35):
+    def __init__(self, csv: str, vid: str, first: int = 2400, thresh: int = 35):
         super().__init__(csv, vid)
         # Get tracked bbs of interest.
         self.tracked, _ = self.get_worms_from_end(first, self.count, self.nms)
@@ -229,13 +256,14 @@ class WormViewer(CSV_Reader):
     def image_transformation(img):
         frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         frame = cv2.normalize(frame, frame, 0, 255, cv2.NORM_MINMAX)
-        new_img = cv2.adaptiveThreshold(frame, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,22)
+        new_img = cv2.adaptiveThreshold(frame, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                        cv2.THRESH_BINARY, 11, 22)
         return new_img
 
     @staticmethod
     def calculate_difference(wormA, wormB):
-        wormA = cv2.blur(wormA, (2,2))
-        wormB = cv2.blur(wormB, (2,2))
+        wormA = cv2.blur(wormA, (2, 2))
+        wormB = cv2.blur(wormB, (2, 2))
         diff = cv2.absdiff(wormA, wormB)
         return diff
 
@@ -273,14 +301,14 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first: int
 
     exp_ids = match_csv_video(csvs, videos)
 
-    for exp_id  in exp_ids:
+    for exp_id in exp_ids:
         print(f"Processing {exp_id}")
         csv_path = os.path.join(csv_dir, f"{exp_id}.csv")
         vid_path = os.path.join(video_dir, f"{exp_id}.avi")
 
         viewer = WormViewer(csv_path, vid_path, first=first, thresh=35)
         # Thresh is the score in frame difference to call death.
-        scores = viewer.compute_score()
+        viewer.compute_score()
         viewer.save_scored_data(exp_id, path=save_dir)
 
         print(f"Done processing {exp_id}")

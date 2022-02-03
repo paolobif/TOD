@@ -29,7 +29,7 @@ def display_worms(worms: list[np.ndarray]):
     plt.show(block=True)
 
 
-def non_max_suppression_post(outputs: np.ndarray, overlapThresh):
+def non_max_suppression_post(outputs: np.ndarray, overlapThresh, counts=False):
     # if there are no boxes, return an empty list
     boxes = outputs.astype(float)
     # for out in outputs:
@@ -58,6 +58,7 @@ def non_max_suppression_post(outputs: np.ndarray, overlapThresh):
     idxs = np.argsort(y2)
     # keep looping while some indexes still remain in the indexes
     # list
+    cs = []
     while len(idxs) > 0:
         # grab the last index in the indexes list and add the
         # index value to the list of picked indexes
@@ -80,6 +81,11 @@ def non_max_suppression_post(outputs: np.ndarray, overlapThresh):
         idxs = np.delete(idxs, np.concatenate(([last],
             np.where(overlap > overlapThresh)[0])))
 
-    return boxes[pick].astype(float)
+        # get the counts for each bounding box.
+        cs.append(len(np.where(overlap > overlapThresh)[0]))
 
+    if counts:
+        return boxes[pick].astype(float), cs
 
+    else:
+        return boxes[pick].astype(float)
