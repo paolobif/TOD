@@ -1,6 +1,4 @@
 from itertools import count
-from tkinter.tix import Tree
-from unittest import skip
 import cv2
 import pandas as pd
 import os
@@ -110,11 +108,16 @@ class WormViewer(CSV_Reader):
     count = 20  # How many frames used to locate fixed bbs.
     scan = 2000  # Numer of frames in reverse to examine.
 
-    def __init__(self, csv: str, vid: str, first: int = 2400, thresh: int = 35):
+    def __init__(self, csv: str, vid: str, thresh: int = 35, first=False):
         super().__init__(csv, vid)
         # Get tracked bbs of interest.
         self.tracked, _ = self.get_worms_from_end(first, self.count, self.nms)
-        self.first = first
+
+        # Make sure doesn't exceed video frame capcacity.
+        if self.exp_end + count > self.frame_count:
+            self.exp_end = self.frame_count - count
+
+        self.first = first if first else self.exp_end
         self.thresh = thresh
 
         worm_ids = np.arange(0, len(self.tracked))
@@ -282,7 +285,7 @@ def match_csv_video(csvs, videos):
     return matches
 
 
-def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first: int = 2400):
+def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=False):
     """Takes directory of csvs with yolo outputs and then directory
     with videos. Using the video and bounding boxes, creates and saves
     time of death csv for each experiment.
@@ -306,7 +309,7 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first: int
         csv_path = os.path.join(csv_dir, f"{exp_id}.csv")
         vid_path = os.path.join(video_dir, f"{exp_id}.avi")
 
-        viewer = WormViewer(csv_path, vid_path, first=first, thresh=35)
+        viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
         # Thresh is the score in frame difference to call death.
         viewer.compute_score()
         viewer.save_scored_data(exp_id, path=save_dir)
