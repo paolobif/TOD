@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     # df = read_df(SCORED)
 
-    for i in range(1049, 1056):
+    for i in range(1045, 1049):
         scored = os.path.join(SCORED, f"{i}_auto.csv")
         video = os.path.join(VIDEO, f"{i}.avi")
         save = os.path.join(SAVE, f"{i}.avi")
