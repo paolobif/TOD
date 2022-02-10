@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import numpy as np
 from tqdm import tqdm
-import time
 
 from utils import *
 
@@ -71,6 +70,57 @@ class CSV_Reader():
         tracked = non_max_suppression_post(all_bbs, nms)
         self.tracked = tracked
         return tracked, all_bbs
+
+    def update_tracked(self, frame_id: int, thresh=0.8, count: int = 5):
+        """Matches the current list of bounding boxes to the list of worms
+        found at frame number frame_id. Then updates the list of tracked worms
+        only if the iou is greater than the threshold value.
+
+        Args:
+            frame_id (int): frame you want to fetch the future wormms from.
+            thresh (float, optional): nms and iou thresh for worms. Defaults to 0.8.
+            count (int, optional): How many frames to average from. Defaults to 5.
+        """
+        upper_bound = frame_id + count
+        all_futures = self.df[self.df["frame"].between(frame_id, upper_bound)]
+        all_futures = all_futures.to_numpy()[:, 1:5]
+        futures = non_max_suppression_post(all_futures, thresh)  # Possible Boxes
+
+        tracked = self.tracked
+
+        for i, track in enumerate(tracked):
+            track = np.tile(track, (len(futures), 1))
+            track2 = xywh_to_xyxy(track)
+
+            futures2 = xywh_to_xyxy(futures)
+
+            # Find overlaped box.
+            xx1 = np.maximum(track2[0], futures2[0])
+            yy1 = np.maximum(track2[1], futures2[1])
+            xx2 = np.minimum(track2[2], futures2[2])
+            yy2 = np.minimum(track2[3], futures2[3])
+
+            # Compute area for each section
+            area_track = track[:, 2] * track[:, 3]
+            area_futures = futures[:, 2] * futures[:, 3]
+
+            w = np.maximum(0, xx2 - xx1)
+            h = np.maximum(0, yy2 - yy1)
+
+            area = w * h
+            # Calculate intersection / union
+            iou = area / (area_track + area_futures - area)
+            assert(iou.all() >= 0)
+            assert(iou.all() <= 1)
+
+            match_idx = np.argmax(iou)
+            iou_val = iou[match_idx]
+
+            if iou_val >= thresh:
+                print(f"updated {i} by {futures[match_idx] - tracked[i]}")
+                tracked[i] = futures[match_idx]
+
+        self.tracked = tracked
 
     def determine_exp_end(self, nms=0.6):
         # Get threshold for count needed to be considered "stagnant"
@@ -274,6 +324,8 @@ class WormViewer(CSV_Reader):
         diff = cv2.absdiff(wormA, wormB)
         return diff
 
+
+# Functions for processing the videos
 
 def match_csv_video(csvs, videos):
     csvs = [os.path.splitext(csv)[0] for csv in csvs]

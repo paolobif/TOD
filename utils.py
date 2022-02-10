@@ -29,6 +29,18 @@ def display_worms(worms: list[np.ndarray]):
     plt.show(block=True)
 
 
+def xywh_to_xyxy(bbs):
+    x1 = bbs[:, 0]
+    y1 = bbs[:, 1]
+    w = bbs[:, 2]
+    h = bbs[:, 3]
+
+    x2 = x1 + w
+    y2 = y1 + h
+
+    return x1, y1, x2, y2
+
+
 def non_max_suppression_post(outputs: np.ndarray, overlapThresh, counts=False):
     # if there are no boxes, return an empty list
     boxes = outputs.astype(float)
@@ -89,3 +101,4 @@ def non_max_suppression_post(outputs: np.ndarray, overlapThresh, counts=False):
 
     else:
         return boxes[pick].astype(float)
+
