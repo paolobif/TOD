@@ -374,7 +374,7 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
         vid_path = os.path.join(video_dir, f"{exp_id}.avi")
 
         # viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
-        viewer = WormViewer(csv_path, vid_path, first=2400, thresh=30)
+        viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
 
         # Thresh is the score in frame difference to call death.
         viewer.compute_score()
