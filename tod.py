@@ -118,7 +118,9 @@ class CSV_Reader():
 
             if iou_val >= thresh:
                 print(f"updated {i} by {futures[match_idx] - tracked[i]}")
-                tracked[i] = futures[match_idx]
+                # Keep w and height the same.
+                x1, y1, nw, nh = futures[match_idx]
+                tracked[i] = [x1, y1, tracked[i][2], tracked[i][3]]
 
         self.tracked = tracked
 
@@ -224,10 +226,16 @@ class WormViewer(CSV_Reader):
 
         # Loop through every {skip} frames in reverse.
         for i in tqdm(range(start, stop, -skip)):
+            # Update the tracked between skipped intervals.
+            update_interval = 5  # How many frames to update
+            for j in range(skip, 0, -update_interval):
+                self.update_tracked(i + j, thresh=0.8, count=5)
+                # Updates the location every 5 frames.
+
+            # Begin score computation
             current_worms = self.fetch_worms(worm_ids, i)
             current_worms = self.transform_all_worms(current_worms)
 
-            #spread = count + gap
             # Sets frame range for getting worm averages.
             high = min(start, i + gap + skip * count)  # Upper bounds.
             low = min(start, i + gap)  # Lower bounds.
@@ -365,7 +373,9 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
         csv_path = os.path.join(csv_dir, f"{exp_id}.csv")
         vid_path = os.path.join(video_dir, f"{exp_id}.avi")
 
-        viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
+        # viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
+        viewer = WormViewer(csv_path, vid_path, first=2400, thresh=30)
+
         # Thresh is the score in frame difference to call death.
         viewer.compute_score()
         viewer.save_scored_data(exp_id, path=save_dir)
