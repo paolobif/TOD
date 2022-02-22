@@ -117,7 +117,7 @@ class CSV_Reader():
             iou_val = iou[match_idx]
 
             if iou_val >= thresh:
-                print(f"updated {i} by {futures[match_idx] - tracked[i]}")
+                # print(f"updated {i} by {futures[match_idx] - tracked[i]}")
                 # Keep w and height the same.
                 x1, y1, nw, nh = futures[match_idx]
                 tracked[i] = [x1, y1, tracked[i][2], tracked[i][3]]
@@ -145,6 +145,10 @@ class CSV_Reader():
 
         end_idx = np.argmax(stagnant)
         exp_end = (end_idx + 1) * interval
+
+        # Prevent too large exp ends
+        if exp_end > 2400:
+            exp_end = 2400
 
         print(f"Experiment Done @ Frame {exp_end}")
         return exp_end
