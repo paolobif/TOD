@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 from utils import *
 
+from perceptron_analysis import *
+
 
 # Loads csv
 class CSV_Reader():
@@ -159,7 +161,7 @@ class WormViewer(CSV_Reader):
     count = 20  # How many frames used to locate fixed bbs.
     scan = 2000  # Numer of frames in reverse to examine.
 
-    def __init__(self, csv: str, vid: str, thresh: int = 35, first=False):
+    def __init__(self, csv: str, vid: str, thresh: int = 35, first=False,train_path = "weights_test.csv"):
         super().__init__(csv, vid)
         # Make sure doesn't exceed video frame capcacity.
         if self.exp_end + self.count > self.frame_count:
@@ -176,6 +178,8 @@ class WormViewer(CSV_Reader):
         for i in worm_ids:
             worm_state[i] = False
         self.worm_state = worm_state
+        self.perceptron = BinaryPerceptron(6,[0,0,0,0,0,0],alpha=0.01,save_path = train_path)
+        self.perceptron.load()
 
     def fetch_worms(self, worm_ids: list, frame_id: int, pad: int = 0):
         ret, frame = self.get_frame(frame_id)
@@ -263,9 +267,14 @@ class WormViewer(CSV_Reader):
                 xshape, yshape = current_worm.shape
 
                 totals = []
+                totals2 = []
                 for worm in older_worms:
                     difference = self.calculate_difference(worm, current_worm)
                     totals.append(difference.sum(axis=None))
+
+                    cur_data = TrainingData(current_worm, worm)
+                    totals2.append(self.perceptron.classify(cur_data.getVector()))
+
 
                 pixel_count = xshape * yshape
                 avg = np.average(totals)
@@ -273,7 +282,12 @@ class WormViewer(CSV_Reader):
 
                 difs[worm_id].append(avg)
 
+                total2_avg = np.nanmean(totals2)
+
+
                 if not self.worm_state[worm_id] and avg > self.thresh:
+                #if not self.worm_state[worm_id] and total2_avg > 0:
+
                     self.worm_state[worm_id] = i + skip
                     # included - gap to account for the fact that when the worm
                     # has moved it is already alive, so go back to last time it
@@ -374,7 +388,7 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
         vid_path = os.path.join(video_dir, f"{exp_id}.avi")
 
         # viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
-        viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
+        viewer = WormViewer(csv_path, vid_path, first=2400, thresh=30)
 
         # Thresh is the score in frame difference to call death.
         viewer.compute_score()
@@ -384,9 +398,9 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
 
 
 if __name__ == "__main__":
-    CSVS = "./exp/csvs"
-    VIDS = "./exp/vids"
-    SAVE = "./exp/results"
+    CSVS = "C:/Users/cdkte/Downloads/videos/300/csvs"
+    VIDS = "C:/Users/cdkte/Downloads/videos/300/vids"
+    SAVE = "C:/Users/cdkte/Downloads/videos/300/results"
 
     # CSVS is path to directory with all the YOLO output files
     # VIDS is the path to a directory with the matching raw videos
