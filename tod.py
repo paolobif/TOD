@@ -1,10 +1,15 @@
+from distutils.command.build import build
 import cv2
+from matplotlib.pyplot import box
 import pandas as pd
 import os
 import numpy as np
 from tqdm import tqdm
 
+import torch
+
 from utils import *
+from models import WormClassifier, pre_process_img
 
 
 # Loads csv
@@ -163,6 +168,12 @@ class WormViewer(CSV_Reader):
     count = 20  # How many frames used to locate fixed bbs.
     scan = 2000  # Numer of frames in reverse to examine.
 
+    # Init the model.
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    weights = "weights/best_model_mask.pt"
+    model = WormClassifier()
+    model.load_state_dict(torch.load("weights/best_model_mask.pt", map_location=device))
+
     def __init__(self, csv: str, vid: str, thresh: int = 35, first=False):
         super().__init__(csv, vid)
         # Make sure doesn't exceed video frame capcacity.
@@ -175,11 +186,21 @@ class WormViewer(CSV_Reader):
 
         self.thresh = thresh
 
+        # Track of the time of death calls for each worm.
         worm_ids = np.arange(0, len(self.tracked))
         worm_state: dict[int, int] = {}
         for i in worm_ids:
             worm_state[i] = False
         self.worm_state = worm_state
+
+        # Track the worm state and reference worm.
+        box_state: dict[int, int] = {}
+        for i in worm_ids:
+            box_state[i] = {"state": [],
+                            "match": [],
+                            "frames": [],
+                            "ref": None}
+        self.box_state = box_state
 
     def fetch_worms(self, worm_ids: list, frame_id: int, pad: int = 0):
         ret, frame = self.get_frame(frame_id)
@@ -198,6 +219,24 @@ class WormViewer(CSV_Reader):
             worm_imgs.append(worm_img)
 
         return worm_imgs
+
+
+    def compute_score2(self, skip=2):
+        worm_ids = np.arange(0, len(self.tracked))
+
+        start = self.first
+        stop = self.first - self.scan
+
+        for frame_num in tqdm(range(start, stop, -skip)):
+            current_worms = self.fetch_worms(worm_ids, frame_num)
+            features = []
+            for i, worm in enumerate(current_worms):
+                worm = pre_process_img(worm)
+                pred, feature = self.model.forward(worm, features=True)
+                feature = feature.detach().numpy()[0]
+                features.append(feature)
+
+                if pred
 
     def transform_all_worms(self, worms):
         new_worms = []

@@ -2,11 +2,14 @@ from skimage import io, transform
 import torch
 import os
 import cv2
+import numpy as np
 
 from torchvision import transforms, datasets, utils as vutils
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.transforms.functional import pad
+
 
 
 class WormClassifier(nn.Module):
@@ -57,6 +60,16 @@ class WormClassifier(nn.Module):
         return x
 
 
+class SquarePad:
+    def __call__(self, image):
+        w, h = image.size
+        max_wh = np.max([w, h])
+        hp = int((max_wh - w) / 2)
+        vp = int((max_wh - h) / 2)
+        padding = (hp, vp, hp, vp)
+        return pad(image, padding, 0, 'constant')
+
+
 class WormDataLoader(Dataset):
 
     def __init__(self, path):
@@ -92,6 +105,25 @@ class WormDataLoader(Dataset):
         image = self.transform(image)
 
 
+# def pre_process_img(img):
+#     data_transform = transforms.Compose([
+#         transforms.ToPILImage(),
+#         transforms.Grayscale(num_output_channels=1),
+#         transforms.Resize((64, 64)),
+#         # transforms.RandomHorizontalFlip(p=0.5),
+#         # transforms.RandomVerticalFlip(p=0.5),
+#         transforms.ToTensor(),
+#         # transforms.Normalize((0.5), (0.5))
+#     ])
+
+#     image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     image = cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
+#     img = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 22)
+#     img = data_transform(img)
+#     img = img.unsqueeze(1)
+#     return img
+
+# No mask version
 def pre_process_img(img):
     data_transform = transforms.Compose([
         transforms.ToPILImage(),
