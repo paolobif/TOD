@@ -236,7 +236,7 @@ class WormViewer(CSV_Reader):
                 feature = feature.detach().numpy()[0]
                 features.append(feature)
 
-                if pred
+                # if pred
 
     def transform_all_worms(self, worms):
         new_worms = []
