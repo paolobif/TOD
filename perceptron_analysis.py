@@ -1,4 +1,4 @@
-from msilib.schema import Binary
+# from msilib.schema import Binary
 from utils import *
 from tod import *
 from simple_perceptron import BinaryPerceptron
@@ -41,9 +41,10 @@ class TrainingData:
     pixel_count = xshape * yshape
 
     return np.mean(diff)
-  def rawDifference(self):
 
+  def rawDifference(self):
     return (np.sum(self.image2) - np.sum(self.image1))/np.sum(self.image2)
+
   def orPixels(self):
     """
     Determines what proportion of the pixels that are in either of the two images

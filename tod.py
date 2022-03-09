@@ -172,6 +172,12 @@ class WormViewer(CSV_Reader):
             self.exp_end = self.frame_count - self.count
 
         self.first = first if first else self.exp_end
+        # Make sure first is not the very end of the experiment,
+        if self.first > self.frame_count - 100:
+            self.first = self.frame_count - 100
+
+        print(f"Processing in reverse from {self.first}")
+
         # Get tracked bbs of interest.
         self.tracked, _ = self.get_worms_from_end(self.first, self.count, self.nms)
 
@@ -222,7 +228,7 @@ class WormViewer(CSV_Reader):
             gap (int, optional): How many frames to jump before starting to
                                  skip for frame averages. Defaults to 5.
         """
-        stop = self.first - self.scan  # where to stop checking in reverse.
+        stop = max(self.first - self.scan, 1)  # where to stop checking in reverse.
         start = self.first  # where to start checking in reverse.
         assert(start > stop), "Invalid scan and first params."
 
