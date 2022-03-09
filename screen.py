@@ -101,11 +101,14 @@ def process_experiment(df, interval: int, exp_id: int):
         exp_id (int): exp id for saving the csv.
 
     """
-    skip = -5  # Skip so that the running total isn't done every single frame...
+    skip = 5 # Skip so that the running total isn't done every single frame...
 
     frame_count = int(df["frame"].max())
+    print(frame_count)
+
+    frame_count = 2480
     counts = []
-    for i in tqdm(range(frame_count, 0, skip)):
+    for i in tqdm(range(frame_count, 0, -skip)):
         bbs = worms_from_frame_range(df, i, i + interval)
         nms = non_max_suppression_post(bbs, 0.8)
         counts.append([exp_id, i, len(nms)])
@@ -114,11 +117,11 @@ def process_experiment(df, interval: int, exp_id: int):
 
 
 if __name__ == "__main__":
-    INTERVAL = 50
-    SAVE_PATH = "exp/results/sreen_results.csv"
+    INTERVAL = 100
+    SAVE_PATH = "exp/results/12_14_results2.csv"
 
-    csv_path = "exp/csvs"
-    meta_path = "exp/meta/ExpMatch.csv"
+    csv_path = "exp/12_14"
+    meta_path = "exp/meta/ExpMatch.csv"  # Not in use rn.
 
     csv_names = os.listdir(csv_path)
 
@@ -129,8 +132,8 @@ if __name__ == "__main__":
            Processing {len(csv_names)} experiments!
            """)
 
-    dfs = []
-    for csv in csv_names:
+    # dfs = []
+    for i, csv in enumerate(csv_names):
         exp_id, ext = csv.split(".")
         if ext != "csv":
             continue
@@ -138,9 +141,11 @@ if __name__ == "__main__":
         print(f"--- Processing {exp_id} ---")
         full_path = os.path.join(csv_path, csv)
         df = csv_reader(full_path)
-        counts = process_experiment(df, 100, exp_id=exp_id)
+        counts = process_experiment(df, INTERVAL, exp_id=exp_id)
         count_df = pd.DataFrame(counts, columns=["exp_id", "frame", "count"])
-        dfs.append(count_df)
+        count_df.to_csv(SAVE_PATH, index=None, mode='a', header=None)
+        print(f"{i} / {len(csv_names)}")
+        # dfs.append(count_df)
 
-    all_df = pd.concat(dfs, ignore_index=True)
-    all_df.to_csv(SAVE_PATH, index=None)
+    # all_df = pd.concat(dfs, ignore_index=True)
+    # all_df.to_csv(SAVE_PATH, index=None)
