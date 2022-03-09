@@ -8,7 +8,6 @@ from utils import *
 
 from perceptron_analysis import *
 
-
 # Loads csv
 class CSV_Reader():
     frame_interval = 100  # Frame intervals to check for stagnant worms
@@ -289,8 +288,8 @@ class WormViewer(CSV_Reader):
                 total2_avg = np.nanmean(totals2)
 
 
-                if not self.worm_state[worm_id] and avg > self.thresh:
-                #if not self.worm_state[worm_id] and total2_avg > 0:
+                #if not self.worm_state[worm_id] and avg > self.thresh:
+                if not self.worm_state[worm_id] and total2_avg > 0:
 
                     self.worm_state[worm_id] = i + skip
                     # included - gap to account for the fact that when the worm
@@ -391,8 +390,7 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
         csv_path = os.path.join(csv_dir, f"{exp_id}.csv")
         vid_path = os.path.join(video_dir, f"{exp_id}.avi")
 
-        # viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
-        viewer = WormViewer(csv_path, vid_path, first=2400, thresh=30)
+        viewer = WormViewer(csv_path, vid_path, first=first, thresh=30)
 
         # Thresh is the score in frame difference to call death.
         viewer.compute_score()
@@ -402,9 +400,9 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
 
 
 if __name__ == "__main__":
-    CSVS = "C:/Users/cdkte/Downloads/videos/300/csvs"
-    VIDS = "C:/Users/cdkte/Downloads/videos/300/vids"
-    SAVE = "C:/Users/cdkte/Downloads/videos/300/results"
+    CSVS = "./exp/csvs"
+    VIDS = "./exp/vids"
+    SAVE = "./exp/results"
 
     # CSVS is path to directory with all the YOLO output files
     # VIDS is the path to a directory with the matching raw videos
