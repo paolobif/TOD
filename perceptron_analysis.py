@@ -57,6 +57,8 @@ class TrainingData:
         float: The proportion of pixels in the old image and the OR image
     """
     shared_matrix = 1 - (1-self.image1)*(1-self.image2)
+    if np.sum(shared_matrix)==0:
+      return 1
     return np.sum(self.image2)/(np.sum(shared_matrix))
 
   def andPixels(self):
