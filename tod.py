@@ -91,6 +91,9 @@ class CSV_Reader():
         tracked = self.tracked
 
         for i, track in enumerate(tracked):
+            # Make sure there are bounding boxes on the next frame.
+            if len(futures) == 0:
+                continue
             track = np.tile(track, (len(futures), 1))
             track2 = xywh_to_xyxy(track)
 
@@ -405,7 +408,7 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
 
 if __name__ == "__main__":
     CSVS = "/mnt/sdb1/videos/4_data/csvs"
-    VIDS = "/mnt/sdb1/videos/4_data/vids"
+    VIDS = "/mnt/sdb1/videos/4_data/test"
     SAVE = "/mnt/sdb1/videos/4_data/results"
 
     # CSVS is path to directory with all the YOLO output files
