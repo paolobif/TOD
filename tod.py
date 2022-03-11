@@ -408,7 +408,7 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
 
 if __name__ == "__main__":
     CSVS = "/mnt/sdb1/videos/4_data/csvs"
-    VIDS = "/mnt/sdb1/videos/4_data/test"
+    VIDS = "/mnt/sdb1/videos/4_data/vids"
     SAVE = "/mnt/sdb1/videos/4_data/results"
 
     # CSVS is path to directory with all the YOLO output files
