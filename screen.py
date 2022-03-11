@@ -118,10 +118,10 @@ def process_experiment(df, interval: int, exp_id: int):
 
 if __name__ == "__main__":
     INTERVAL = 100
-    SAVE_PATH = "exp/results/12_14_results2.csv"
+    SAVE_PATH = "/mnt/sdb1/videos/4_data/results/tod.csv"
 
-    csv_path = "exp/12_14"
-    meta_path = "exp/meta/ExpMatch.csv"  # Not in use rn.
+    csv_path = "/mnt/sdb1/videos/4_data/csvs"
+    # meta_path = "exp/meta/ExpMatch.csv"  # Not in use rn.
 
     csv_names = os.listdir(csv_path)
 
