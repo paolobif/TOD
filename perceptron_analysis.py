@@ -43,6 +43,11 @@ class TrainingData:
     return np.mean(diff)
 
   def rawDifference(self):
+    if np.sum(self.image2) == 0:
+      if np.sum(self.image1) == 0:
+        return 1
+      else:
+        return 0
     return (np.sum(self.image2) - np.sum(self.image1))/np.sum(self.image2)
 
   def orPixels(self):
