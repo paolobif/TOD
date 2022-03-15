@@ -94,6 +94,10 @@ class CSV_Reader():
         tracked = self.tracked
 
         for i, track in enumerate(tracked):
+            # Make sure there are bounding boxes on the next frame.
+            if len(futures) == 0:
+                continue
+
             track = np.tile(track, (len(futures), 1))
             track2 = xywh_to_xyxy(track)
 
@@ -181,6 +185,12 @@ class WormViewer(CSV_Reader):
             self.exp_end = self.frame_count - self.count
 
         self.first = first if first else self.exp_end
+        # Make sure first is not the very end of the experiment,
+        if self.first > self.frame_count - self.count:
+            self.first = self.exp_end
+
+        print(f"Processing in reverse from {self.first}")
+
         # Get tracked bbs of interest.
         self.tracked, _ = self.get_worms_from_end(self.first, self.count, self.nms)
 
@@ -219,7 +229,6 @@ class WormViewer(CSV_Reader):
             worm_imgs.append(worm_img)
 
         return worm_imgs
-
 
     def compute_score2(self, skip=2):
         worm_ids = np.arange(0, len(self.tracked))
