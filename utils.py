@@ -180,3 +180,19 @@ def test_nms(outputs: np.ndarray, overlapThresh, counts=False):
 
     else:
         return boxes[pick].astype(float)
+
+
+def auto_pad(x, y, w, h):
+    """Pads dimension if the width - height ratio
+    is too small or too big. """
+    upper = 2.5  # 1 : 3 ratio threshold
+    ratio = w / h
+    # If width is too large relative to height.
+    if ratio > upper:
+        y = y - int(((w - h) / 2))
+        h = w
+    elif ratio < (1 / upper):  # If height too large relative.
+        x = x - int(((h - w) / 2))
+        w = h
+
+    return x, y, w, h

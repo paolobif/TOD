@@ -11,9 +11,7 @@ import torch.nn.functional as F
 from torchvision.transforms.functional import pad
 
 
-
 class WormClassifier(nn.Module):
-
     def __init__(self, dim=64):
         super(WormClassifier, self).__init__()
         self.conv1_1 = nn.Conv2d(1, 12, 5, 1, padding=2)
@@ -70,6 +68,11 @@ class SquarePad:
         return pad(image, padding, 0, 'constant')
 
 
+class Pass:
+    def __call__(self, image):
+        return image
+
+
 class WormDataLoader(Dataset):
 
     def __init__(self, path):
@@ -105,29 +108,12 @@ class WormDataLoader(Dataset):
         image = self.transform(image)
 
 
-# def pre_process_img(img):
-#     data_transform = transforms.Compose([
-#         transforms.ToPILImage(),
-#         transforms.Grayscale(num_output_channels=1),
-#         transforms.Resize((64, 64)),
-#         # transforms.RandomHorizontalFlip(p=0.5),
-#         # transforms.RandomVerticalFlip(p=0.5),
-#         transforms.ToTensor(),
-#         # transforms.Normalize((0.5), (0.5))
-#     ])
-
-#     image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     image = cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
-#     img = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 22)
-#     img = data_transform(img)
-#     img = img.unsqueeze(1)
-#     return img
-
 # No mask version
-def pre_process_img(img):
+def pre_process_img(img, mask_model=False):
     data_transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Grayscale(num_output_channels=1),
+        SquarePad() if mask_model else Pass(),
         transforms.Resize((64, 64)),
         # transforms.RandomHorizontalFlip(p=0.5),
         # transforms.RandomVerticalFlip(p=0.5),
@@ -135,7 +121,13 @@ def pre_process_img(img):
         # transforms.Normalize((0.5), (0.5))
     ])
 
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX)
+    if mask_model:
+        mask = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                     cv2.THRESH_BINARY, 11, 22)
+        mask = cv2.bitwise_not(mask)
+        img = cv2.bitwise_and(img, img, mask=mask)
     img = data_transform(img)
     img = img.unsqueeze(1)
     return img
