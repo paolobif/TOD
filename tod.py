@@ -91,6 +91,9 @@ class CSV_Reader():
         tracked = self.tracked
 
         for i, track in enumerate(tracked):
+            # Make sure there are bounding boxes on the next frame.
+            if len(futures) == 0:
+                continue
             track = np.tile(track, (len(futures), 1))
             track2 = xywh_to_xyxy(track)
 
@@ -173,8 +176,8 @@ class WormViewer(CSV_Reader):
 
         self.first = first if first else self.exp_end
         # Make sure first is not the very end of the experiment,
-        if self.first > self.frame_count - 100:
-            self.first = self.frame_count - 100
+        if self.first > self.frame_count - 21:
+            self.first = self.frame_count - 21
 
         print(f"Processing in reverse from {self.first}")
 
@@ -404,9 +407,9 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
 
 
 if __name__ == "__main__":
-    CSVS = "./exp/csvs"
-    VIDS = "./exp/vids"
-    SAVE = "./exp/results"
+    CSVS = "/mnt/sdb1/videos/4_data/csvs"
+    VIDS = "/mnt/sdb1/videos/4_data/vids"
+    SAVE = "/mnt/sdb1/videos/4_data/results"
 
     # CSVS is path to directory with all the YOLO output files
     # VIDS is the path to a directory with the matching raw videos
