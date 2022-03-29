@@ -1,5 +1,6 @@
 from curses.panel import update_panels
 from distutils.command.build import build
+from turtle import width
 import cv2
 from matplotlib.pyplot import box
 import pandas as pd
@@ -215,20 +216,31 @@ class WormViewer(CSV_Reader):
                             "ref": None}
         self.box_state = box_state
 
-    def fetch_worms(self, worm_ids: list, frame_id: int, pad: int = 0, auto=False):
+    def fetch_worms(self, worm_ids: list, frame_id: int, pad=0, offset=(0,0), auto=False):
         """Fetches worms in self.tracked by worm id on a given frame_id.
         Allows for padding and auto padding for worms that are skinny.
 
         Args:
             worm_ids (list): List of worm ids to be fetched.
             frame_id (int): Frame from which to fetch worms.
-            pad (int, optional): Padding in x and y direction.
-            auto (bool, optional): Auto pads for skinny worms.
+            pad (int, tuple): Padding in x and y direction. Tuple or Int.
+            offset (tuple): Offset in x and y direction. Tuple.
+            auto (tuple, optional): Auto pads for skinny worms.
 
         Returns:
             _type_: _description_
         """
+        # Get pad ammount.
+        if type(pad) == int:
+            padX = pad
+            padY = pad
+        else:
+            padX, padY = pad
+
+        # Get the bbs for the frame.
         ret, frame = self.get_frame(frame_id)
+        height, width = frame.shape[:2]
+
         if not ret:
             print(f"Frame {frame_id} not found.")
             pass
@@ -239,12 +251,18 @@ class WormViewer(CSV_Reader):
                 pass
 
             x, y, w, h = self.tracked[worm].astype(int)
-            x, y, w, h = x - pad, y - pad, w + pad, h + pad
+            x += offset[0]
+            y += offset[1]
+            x, y, w, h = x - padX, y - padY, w + 2*padX, h + 2*padY
 
             if auto:
                 x, y, w, h = auto_pad(x, y, w, h)
-                
-            worm_img = frame[y:y+h, x:x+w]
+
+            # Set x y lower and upper to account for padding / offset.
+            y_l, y_u = max(0, y), min(height, y + h)
+            x_l, x_u = max(0, x), min(width, x + w)
+
+            worm_img = frame[y_l:y_u, x_l:x_u]
             worm_imgs.append(worm_img)
 
         return worm_imgs
