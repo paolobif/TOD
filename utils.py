@@ -30,7 +30,7 @@ def get_worms(image, bbs):
     return worms
 
 
-def display_worms(worms: list[np.ndarray]):
+def display_worms(worms):
     """List of worm images and then makes a figure with all
     the worms"""
     worm_count = len(worms)
