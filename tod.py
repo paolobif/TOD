@@ -1,6 +1,3 @@
-from curses.panel import update_panels
-from distutils.command.build import build
-from turtle import width
 import cv2
 from matplotlib.pyplot import box
 import pandas as pd
