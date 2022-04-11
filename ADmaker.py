@@ -1,12 +1,8 @@
 import os
-import sys
 import cv2
-import csv
 from tqdm import tqdm
 import pandas as pd
-import random
-import numpy as np
-import time
+import argparse
 
 
 def read_df(path):
@@ -58,12 +54,24 @@ if __name__ == "__main__":
     VIDEO = "./exp/vids/"
     SAVE = "./exp/results/"
 
-    # df = read_df(SCORED)
+    parser = argparse.ArgumentParser(description='Make video from scored csv file.')
+    parser.add_argument('--scored', type=str, default=SCORED, help='scored csv path')
+    parser.add_argument('--video', type=str, default=VIDEO, help='video path')
+    parser.add_argument('--save', type=str, default=SAVE, help='video save path')
+    args = parser.parse_args()
 
-    for i in range(1049, 1056):
-        scored = os.path.join(SCORED, f"{i}_auto.csv")
-        video = os.path.join(VIDEO, f"{i}.avi")
-        save = os.path.join(SAVE, f"{i}.avi")
+    scored = args.scored
+    video = args.video
+    save = args.save
 
-        save_video(scored, video, save)
+    # for i in range(1049, 1056):
+    for scored in os.listdir(scored):
+        expID = scored.split("_")[0]
+
+        scored_path = os.path.join(scored, f"{expID}_auto.csv")
+        video_path = os.path.join(video, f"{expID}.avi")
+        save_path = os.path.join(save, f"{expID}.avi")
+
+        if os.path.exists(scored_path) and os.path.exists(video_path):
+            save_video(scored_path, video_path, save_path)
 

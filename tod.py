@@ -252,28 +252,28 @@ class WormViewer(CSV_Reader):
             for worm_id in worm_ids:
                 older_worms = worms_to_inspect[:, worm_id]
                 # older_worms = self.transform_all_worms(older_worms)
-                self.older = worms_to_inspect
+                # self.older = worms_to_inspect
                 current_worm = current_worms[worm_id]
                 xshape, yshape = current_worm.shape
 
-                totals = []
+                # totals = []
                 totals2 = []
                 for worm in older_worms:
-                    difference = self.calculate_difference(worm, current_worm)
-                    totals.append(difference.sum(axis=None))
+                    # difference = self.calculate_difference(worm, current_worm)
+                    # totals.append(difference.sum(axis=None))
 
                     cur_data = TrainingData(current_worm, worm)
                     totals2.append(self.perceptron.classify(cur_data.getVector()))
 
-                pixel_count = xshape * yshape
-                avg = np.average(totals)
-                avg = avg / pixel_count  # Normalize difference by pixel count.
+                # pixel_count = xshape * yshape
+                # avg = np.average(totals)
+                # avg = avg / pixel_count  # Normalize difference by pixel count.
 
-                difs[worm_id].append(avg)
+                # difs[worm_id].append(avg)
 
                 total2_avg = np.nanmean(totals2)
 
-                #if not self.worm_state[worm_id] and avg > self.thresh:
+                # if not self.worm_state[worm_id] and avg > self.thresh:
                 if not self.worm_state[worm_id] and total2_avg > 0:
 
                     self.worm_state[worm_id] = i + skip
