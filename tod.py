@@ -87,12 +87,6 @@ class CSV_Reader():
             bbs = bbs.to_numpy()
             bbs = bbs[:, 1:5]
 
-            # Yolo was not run on entire video.
-            # if len(bbs) == 0:
-            #     print(f"No bbs found in interval {i} - {i + interval}")
-            #     stagnant.append(0)
-            #     continue
-
             final_bbs, counts = non_max_suppression_post(bbs, nms, counts=True)
             counts = np.array(counts)
             # Determine what worms are stagnant.
