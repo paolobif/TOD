@@ -86,6 +86,13 @@ class CSV_Reader():
             bbs = self.df[self.df["frame"].between(i, i + interval)]
             bbs = bbs.to_numpy()
             bbs = bbs[:, 1:5]
+
+            # Yolo was not run on entire video.
+            # if len(bbs) == 0:
+            #     print(f"No bbs found in interval {i} - {i + interval}")
+            #     stagnant.append(0)
+            #     continue
+
             final_bbs, counts = non_max_suppression_post(bbs, nms, counts=True)
             counts = np.array(counts)
             # Determine what worms are stagnant.
@@ -96,8 +103,8 @@ class CSV_Reader():
         exp_end = (end_idx + 1) * interval
 
         # Prevent too large exp ends
-        if exp_end > 2400:
-            exp_end = 2400
+        # if exp_end > 2400:
+        #     exp_end = 2400
 
         print(f"Experiment Done @ Frame {exp_end}")
         return exp_end
@@ -443,9 +450,9 @@ def batch_process(csv_dir: str, video_dir: str, save_dir: str = "./", first=Fals
 
 
 if __name__ == "__main__":
-    CSVS = "/mnt/sdb1/videos/4_data/csvs"
-    VIDS = "/mnt/sdb1/videos/4_data/vids"
-    SAVE = "/mnt/sdb1/videos/4_data/results"
+    CSVS = "/mnt/sdb1/videos/resveratrol_data/csvs"
+    VIDS = "/mnt/sdb1/videos/resveratrol_data/vids"
+    SAVE = "/mnt/sdb1/videos/resveratrol_data/results"
 
     # CSVS is path to directory with all the YOLO output files
     # VIDS is the path to a directory with the matching raw videos
