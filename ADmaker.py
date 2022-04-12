@@ -65,6 +65,8 @@ if __name__ == "__main__":
     save = args.save
 
     # for i in range(1049, 1056):
+    print("Making videos for:", os.listdir(scored))
+
     for scored in os.listdir(scored):
         expID = scored.split("_")[0]
 
@@ -74,4 +76,8 @@ if __name__ == "__main__":
 
         if os.path.exists(scored_path) and os.path.exists(video_path):
             save_video(scored_path, video_path, save_path)
+        elif os.path.exists(scored_path):
+            print("Missing video:", video_path)
+        else:
+            print("Missing scored:", scored_path)
 
