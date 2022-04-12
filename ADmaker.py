@@ -67,10 +67,10 @@ if __name__ == "__main__":
     # for i in range(1049, 1056):
     print("Making videos for:", os.listdir(scored))
 
-    for scored in os.listdir(scored):
+    for file in os.listdir(scored):
         expID = scored.split("_")[0]
 
-        scored_path = os.path.join(scored, f"{expID}_auto.csv")
+        scored_path = os.path.join(file, f"{expID}_auto.csv")
         video_path = os.path.join(video, f"{expID}.avi")
         save_path = os.path.join(save, f"{expID}.avi")
 
