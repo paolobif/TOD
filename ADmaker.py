@@ -6,8 +6,9 @@ import argparse
 
 
 def read_df(path):
-    tod_calls = pd.read_csv(path, usecols=[0, 1, 2, 3, 4, 4, 5])
-    return tod_calls
+    """Loads the automatic calls into pandas df"""
+    df = pd.read_csv(path, header=1, names=["frame", "x1", "y1", "x2", "y2", "expID"], usecols=[0, 1, 2, 3, 4, 4, 5])
+    return df
 
 
 def save_video(path: str, vid_path: str, save_path: str):
